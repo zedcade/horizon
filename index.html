@@ -77,7 +77,7 @@
   .timeline-header { display: flex; justify-content: space-between; font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.03em; }
   .timeline-today-label { color: var(--text); opacity: 0.55; }
   .timeline-target-label { color: var(--timeline-target-color); opacity: 0.85; font-weight: 800; }
-  .timeline-track { position: relative; height: 46px; background: var(--light); border-radius: 16px; border: 1px solid var(--border); overflow: visible; }
+  .timeline-track { position: relative; height: 55px; background: var(--light); border-radius: 16px; border: 1px solid var(--border); overflow: visible; }
   .timeline-grid { position: absolute; inset: 0; border-radius: 16px; overflow: hidden; pointer-events: none; }
   .timeline-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
   .timeline-gridline.week { background: rgba(220, 90, 40, 0.35); width: 1px; }
@@ -87,22 +87,46 @@
   .timeline-scale-label { position: absolute; top: 0; transform: translateX(-50%); font-size: 9px; color: var(--text); opacity: 0.5; white-space: nowrap; }
   .timeline-scale-label.month-label { opacity: 0.85; font-weight: bold; color: var(--rust); }
   .timeline-scale-label.today-label { opacity: 1; font-weight: bold; color: var(--orange); }
-  .timeline-marker {
-    position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--card-bg);
-    transform: translate(-50%, -50%); cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    transition: transform 0.15s, z-index 0s, box-shadow 0.15s; z-index: 1; touch-action: none;
+  .timeline-marker, .gantt-point-marker {
+    position: absolute; width: 20px; height: 20px; border-radius: 50%;
+    transform: translate(-50%, -50%); cursor: pointer;
+    transition: transform 0.15s, z-index 0s, box-shadow 0.15s; z-index: 1;
   }
-  .timeline-marker:hover, .timeline-marker:focus, .timeline-marker.tapped { transform: translate(-50%, -50%) scale(1.4); z-index: 20; }
-  .timeline-marker.dragging { cursor: grabbing; z-index: 30; box-shadow: 0 0 0 4px rgba(250,120,0,0.35), 0 2px 8px rgba(0,0,0,0.4); transform: translate(-50%, -50%) scale(1.5); }
-  /* Shared by .timeline-marker (meeting timeline) and .gantt-point-marker (Gantt due-date
-     dots) — same priority/done/flagged/overdue palette on two differently-positioned dots,
-     so it's defined once here instead of duplicated in both places. */
-  .timeline-marker.prio-1, .gantt-point-marker.prio-1 { background: var(--prio1); }
-  .timeline-marker.prio-2, .gantt-point-marker.prio-2 { background: var(--prio2); }
-  .timeline-marker.prio-3, .gantt-point-marker.prio-3 { background: var(--prio3); }
-  .timeline-marker.marker-done, .gantt-point-marker.marker-done { opacity: 0.75; }
-  .timeline-marker.marker-flagged, .gantt-point-marker.marker-flagged { box-shadow: 0 0 0 2px #DC5A28, 0 1px 3px rgba(0,0,0,0.3); }
-  .timeline-marker.marker-overdue, .gantt-point-marker.marker-overdue { border-color: red; }
+  .timeline-marker { cursor: grab; touch-action: none; }
+  .gantt-point-marker { top: 50%; z-index: 4; }
+  .timeline-marker:hover, .timeline-marker:focus, .timeline-marker.tapped,
+  .gantt-point-marker:hover { transform: translate(-50%, -50%) scale(1.25); z-index: 20; }
+  .timeline-marker.dragging {
+    cursor: grabbing; z-index: 30;
+    box-shadow: 0 0 0 4px rgba(250,120,0,0.35), 0 2px 8px rgba(0,0,0,0.4);
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+
+  /* ---- Shared point-marker visual: priority dot + status/progress ring, or a
+     blocked stop-sign icon in place of both. Used by .timeline-marker (meeting
+     timeline) and .gantt-point-marker (Gantt due-date dots) via the JS helper
+     buildPointMarkerVisual(), so both views render identically. Ring precedence
+     (only one shown at a time — see buildPointMarkerVisual): no owner (pink) >
+     not started (grey) > in-progress/done (green, arc length = % complete). */
+  .pt-marker { position: relative; width: 100%; height: 100%; }
+  .pt-marker-ring { position: absolute; inset: 0; transform: rotate(-90deg); pointer-events: none; }
+  .pt-ring-track { fill: none; stroke: var(--border); stroke-width: 2.2; opacity: 0.7; }
+  .pt-ring-arc { fill: none; stroke-width: 2.2; stroke-linecap: round; transition: stroke-dasharray 0.3s ease; }
+  .pt-ring-arc.pt-ring-progress { stroke: #2e7d32; }
+  .pt-ring-arc.pt-ring-notstarted { stroke: #9e9e9e; }
+  .pt-ring-arc.pt-ring-noowner { stroke: #e0459c; }
+  .pt-marker-dot {
+    position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; border-radius: 50%;
+    transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .pt-marker-dot.prio-1 { background: var(--prio1); }
+  .pt-marker-dot.prio-2 { background: var(--prio2); }
+  .pt-marker-dot.prio-3 { background: var(--prio3); }
+  .pt-marker-dot.marker-done { opacity: 0.8; }
+  .pt-marker-dot.marker-flagged { box-shadow: 0 0 0 2px #DC5A28, 0 1px 3px rgba(0,0,0,0.3); }
+  .pt-marker-dot.marker-overdue { border: 2px solid red; }
+  .pt-marker-blocked { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+  .pt-marker-blocked-icon { font-size: 15px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45)); }
   .timeline-empty { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10px; color: var(--text); opacity: 0.4; white-space: nowrap; }
 
   .timeline-marker.point-hover-highlight {
@@ -508,6 +532,9 @@
   .point-details input, .point-details select { font-size: 12px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-family: inherit; text-transform: none; }
   .point-details .link-row { display: flex; gap: 4px; align-items: center; }
   .point-details .link-open { text-decoration: none; font-size: 13px; }
+  .point-details .finance-confirm-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+  .point-details .finance-confirm-row input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
+  .point-details .finance-confirm-text { font-size: 12px; text-transform: none; color: var(--text); opacity: 0.85; cursor: pointer; }
   ul.points li .point-text {
     flex: 1; min-height: 22px; outline: none; padding: 6px 8px; border-radius: 4px; font-size: 14px; cursor: text;
     color: var(--text);
@@ -567,10 +594,10 @@
   @media (hover: none) {
     .del-btn, .flag-btn, .expand-btn, .drag-handle, .prio-circle, .park-btn, .card-drag-handle, .card-collapse-btn, .card-del-btn, .notes-date-del-btn { min-width: 30px; min-height: 30px; }
     .notes-date-row, .prio-filter-btn, .status-filter-btn, .risk-filter-btn, .notes-date-btn, .point-search-input { min-height: 36px; }
-    .timeline-marker { width: 18px; height: 18px; }
+    .timeline-marker { width: 26px; height: 26px; }
     .gantt-nav-btn, .gantt-today-btn, .gantt-zoom-btn, .gantt-close-btn, .gantt-toggle-btn,
     .filter-dropdown-btn, .filter-dropdown-option { min-height: 36px; }
-    .gantt-point-marker { width: 20px; height: 20px; }
+    .gantt-point-marker { width: 26px; height: 26px; }
     .gantt-row-label { min-height: 44px; }
   }
   @media (max-width: 700px) {
@@ -871,7 +898,7 @@
   .gantt-gridline-full.day { opacity: 0.15; }
   .gantt-gridline-full.today { background: var(--orange); opacity: 1; width: 2px; z-index: 3; }
   .gantt-bar {
-    position: absolute; top: 50%; transform: translateY(-50%); height: 50px; border-radius: 6px; cursor: pointer; min-width: 6px;
+    position: absolute; top: 50%; transform: translateY(-50%); height: 55px; border-radius: 6px; cursor: pointer; min-width: 6px;
     border: 2px solid transparent; box-sizing: border-box; overflow: hidden; z-index: 2;
   }
   .gantt-bar::before {
@@ -881,14 +908,9 @@
   .gantt-bar:hover::before, .gantt-bar.gantt-bar-hover::before { opacity: 0.55; }
   .gantt-bar.at-risk { border-color: #E8453C; }
   .gantt-bar.blocked { border-color: #7A1F1F; border-style: dashed; }
-  .gantt-point-marker {
-    position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--card-bg);
-    transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 4; cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .gantt-point-marker:hover { transform: translate(-50%, -50%) scale(1.3); z-index: 20; }
-  /* .prio-1/2/3, .marker-done, .marker-flagged, .marker-overdue are defined once,
-     shared with .timeline-marker, near the top of the stylesheet. */
+  /* .gantt-point-marker's positioning/sizing/hover and the shared .pt-marker-*
+     visual rules are defined once near the top of the stylesheet, alongside
+     .timeline-marker. */
   .gantt-empty-state { padding: 40px 20px; text-align: center; color: var(--text); opacity: 0.6; font-size: 13px; }
 
   .gantt-dimmed {
@@ -897,6 +919,109 @@
   }
 
   @media print { .gantt-view, .gantt-toggle-btn { display: none !important; } }
+
+  /* ---- Stats view ---- */
+  .stats-view { flex: 1; min-width: 280px; order: 2; width: 100%; }
+  .stats-toolbar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .stats-toolbar-label {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold;
+    color: var(--rust); text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .stats-select {
+    font-size: 13px; font-weight: normal; text-transform: none; color: var(--text); background-color: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 26px 5px 8px; font-family: inherit; cursor: pointer;
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23DC5A28' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    background-size: 10px 6px;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .stats-select:hover { border-color: var(--rust); background-color: rgba(250,120,0,0.08); }
+  .stats-select:focus { outline: none; border-color: var(--orange); background-color: var(--edit-focus-bg); }
+  .stats-select option { background: var(--card-bg); color: var(--text); }
+  /* Native <select> popups can't be reliably re-themed cross-browser (the hover
+     highlight is OS/browser chrome, not CSS) — the Period/Initiative pickers use
+     the same custom .filter-dropdown pattern as the Status/Priority filters
+     instead, so hover/active colors and light/dark theme are fully respected. */
+  .stats-select-dropdown .filter-dropdown-btn {
+    min-width: 150px; justify-content: space-between; border-radius: 6px; font-weight: normal; text-transform: none;
+  }
+  .stats-select-dropdown .filter-dropdown-panel { min-width: 170px; }
+  .stats-custom-range { display: flex; align-items: center; gap: 6px; }
+  .stats-date-input {
+    font-size: 12px; color: var(--text); background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 6px; font-family: inherit;
+  }
+  .stats-range-sep { color: var(--text); opacity: 0.5; }
+  .stats-toolbar-hint { font-size: 11px; color: var(--text); opacity: 0.5; margin-left: auto; }
+  .stats-close-btn { margin-left: 0; }
+
+  .stats-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .stats-kpi-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-left: 4px solid var(--rust);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .stats-kpi-value { font-size: 22px; font-weight: bold; color: var(--rust); line-height: 1.2; }
+  .stats-kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text); opacity: 0.65; margin-top: 2px; }
+  .stats-kpi-card.stats-kpi-ebitda { border-left-color: #2e7d32; }
+  .stats-kpi-card.stats-kpi-ebitda .stats-kpi-value { color: #2e7d32; }
+  .stats-kpi-card.stats-kpi-warn { border-left-color: #d32f2f; }
+  .stats-kpi-card.stats-kpi-warn .stats-kpi-value { color: #d32f2f; }
+
+  .stats-section-title { font-size: 14px; font-weight: bold; color: var(--rust); margin: 4px 0 10px 0; }
+  .stats-table-wrap {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; margin-bottom: 20px;
+  }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .stats-table th {
+    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--rust);
+    padding: 10px 12px; border-bottom: 2px solid var(--border); white-space: nowrap;
+  }
+  .stats-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; white-space: nowrap; }
+  .stats-table tr:last-child td { border-bottom: none; }
+  .stats-table tr:hover td { background: rgba(250,120,0,0.06); }
+  .stats-td-name { font-weight: bold; cursor: pointer; white-space: normal; }
+  .stats-td-name:hover { text-decoration: underline; color: var(--rust); }
+  .stats-bar-cell { display: flex; align-items: center; gap: 8px; min-width: 180px; }
+  .stats-bar-track { position: relative; flex: 1; min-width: 90px; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+  .stats-bar-fill { height: 100%; background: linear-gradient(90deg, #2e7d32, #66bb6a); border-radius: 5px 0 0 5px; }
+  .stats-bar-label { font-size: 11px; white-space: nowrap; opacity: 0.85; }
+  .stats-empty { padding: 40px 20px; text-align: center; color: var(--text); opacity: 0.6; font-size: 13px; }
+
+  .stats-heatmap { margin-bottom: 20px; }
+  .stats-heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .stats-heatmap-months, .stats-heatmap-grid { display: grid; grid-auto-rows: 11px; gap: 3px; width: max-content; }
+  .stats-heatmap-months { grid-template-rows: 11px; margin-bottom: 3px; }
+  .stats-heatmap-month-label { font-size: 9px; color: var(--text); opacity: 0.55; white-space: nowrap; }
+  .stats-heatmap-grid { grid-template-rows: repeat(7, 11px); }
+  .stats-heatmap-cell { width: 11px; height: 11px; border-radius: 2px; background: var(--border); }
+  .stats-heatmap-cell[data-level="1"] { background: #a8d5a2; }
+  .stats-heatmap-cell[data-level="2"] { background: #6fbf6a; }
+  .stats-heatmap-cell[data-level="3"] { background: #2e7d32; }
+  .stats-heatmap-cell[data-level="4"] { background: #1b5e20; }
+  body.dark .stats-heatmap-cell[data-level="1"] { background: #2f4a2f; }
+  body.dark .stats-heatmap-cell[data-level="2"] { background: #3d7a3d; }
+  body.dark .stats-heatmap-cell[data-level="3"] { background: #4caf50; }
+  body.dark .stats-heatmap-cell[data-level="4"] { background: #7ee081; }
+
+  .stats-roi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stats-roi-col { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .stats-roi-col .stats-section-title { margin-top: 0; }
+  .stats-roi-list { display: flex; flex-direction: column; gap: 2px; }
+  .stats-roi-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 7px 4px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 13px;
+  }
+  .stats-roi-row:last-child { border-bottom: none; }
+  .stats-roi-row:hover { background: rgba(250,120,0,0.08); }
+  .stats-roi-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .stats-roi-value { font-weight: bold; color: #2e7d32; white-space: nowrap; }
+
+  @media print { .stats-view, .stats-toggle-btn { display: none !important; } }
+  @media (max-width: 700px) {
+    .stats-toolbar-hint { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -905,6 +1030,9 @@
   <defs>
     <symbol id="icon-gantt" viewBox="0 0 24 24" fill="none">
       <path d="M2.99902 3V16.2C2.99902 17.8802 2.99902 18.7202 3.326 19.362C3.61362 19.9265 4.07257 20.3854 4.63705 20.673C5.27879 21 6.11887 21 7.79902 21H20.999M19.9998 15H15.9998M12.9998 7.00002H6.99978M17.9998 11H8.99978" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-stats" viewBox="0 0 24 24" fill="none">
+      <path d="M2 21H22M5 21V10M11 21V4M17 21V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
   </defs>
 </svg>
@@ -970,6 +1098,7 @@
       </div>
           </div>
     <div class="prio-filter-topbar">
+      <button class="gantt-toggle-btn" id="statsToggleBtn" title="Stats — initiatives, KPIs, and EBITDA impact" aria-label="Toggle stats dashboard"><svg width="18" height="18"><use href="#icon-stats"></use></svg></button>
       <button class="gantt-toggle-btn" id="ganttToggleBtn" title="Gantt view — all initiatives" aria-label="Toggle Gantt view of all initiatives"><svg width="18" height="18"><use href="#icon-gantt"></use></svg></button>
       <span class="filter-gap"></span>
       <button class="blocked-filter-btn" id="blockedFilterBtn" title="Show and expand all blocked items" aria-label="Show and expand all blocked items">🛑</button>
@@ -996,10 +1125,10 @@
       </div>
       <button class="risk-filter-btn" id="riskFilterBtn" title="Show only flagged risk/blocker items">🚩 At Risk</button>
       <div class="point-search-wrap" id="pointSearchWrap">
-        <input type="search" id="pointSearchInput" class="point-search-input" placeholder="🔍 Search points…" aria-label="Search points by text or owner" autocomplete="off">
+        <input type="search" id="pointSearchInput" class="point-search-input" placeholder="🔍 Search tasks…" aria-label="Search tasks by text or owner" autocomplete="off">
       </div>
     </div>
-    <button class="undo-btn" id="undoBtn" disabled title="Restore the last deleted card or point">↺ Undo Delete</button>
+    <button class="undo-btn" id="undoBtn" disabled title="Restore the last deleted card or task">↺ Undo Delete</button>
   </div>
 </div>
 
@@ -1016,7 +1145,7 @@
       <button class="parking-lot-toggle" id="parkingLotToggle" title="Collapse/expand" aria-label="Collapse or expand parking lot">▸</button>
     </div>
     <div class="parking-lot-body" id="parkingLotBody">
-      <div class="parking-lot-hint">Drag a point here to park it for later</div>
+      <div class="parking-lot-hint">Drag a task here to park it for later</div>
     </div>
   </aside>
 
@@ -1054,11 +1183,41 @@
       <div class="gantt-body" id="ganttBody"></div>
     </div>
   </div>
+  <div id="statsView" class="stats-view" style="display:none;">
+    <div class="stats-toolbar">
+      <div class="stats-toolbar-label">Period
+        <div class="filter-dropdown stats-select-dropdown" id="statsPeriodDropdown">
+          <button class="filter-dropdown-btn" id="statsPeriodBtn" type="button" aria-label="Stats time period">All Time<span class="filter-caret">▾</span></button>
+          <div class="filter-dropdown-panel" id="statsPeriodPanel">
+            <div class="filter-dropdown-option active" data-period="all">All Time</div>
+            <div class="filter-dropdown-option" data-period="ytd">Year to Date</div>
+            <div class="filter-dropdown-option" data-period="quarter">This Quarter</div>
+            <div class="filter-dropdown-option" data-period="last12">Last 12 Months</div>
+            <div class="filter-dropdown-option" data-period="custom">Custom Range</div>
+          </div>
+        </div>
+      </div>
+      <span class="stats-custom-range" id="statsCustomRangeWrap" style="display:none;">
+        <input type="date" id="statsCustomFrom" class="stats-date-input" aria-label="Custom range start date">
+        <span class="stats-range-sep">–</span>
+        <input type="date" id="statsCustomTo" class="stats-date-input" aria-label="Custom range end date">
+      </span>
+      <div class="stats-toolbar-label">Initiative
+        <div class="filter-dropdown stats-select-dropdown" id="statsInitiativeDropdown">
+          <button class="filter-dropdown-btn" id="statsInitiativeBtn" type="button" aria-label="Filter stats by initiative">All Initiatives<span class="filter-caret">▾</span></button>
+          <div class="filter-dropdown-panel" id="statsInitiativePanel"></div>
+        </div>
+      </div>
+      <span class="stats-toolbar-hint">Filtered by each task's due date</span>
+      <button class="gantt-close-btn" id="statsCloseBtn" title="Close stats view">✕ Close</button>
+    </div>
+    <div id="statsBody" class="stats-body"></div>
+  </div>
 </div>
 
 <div class="bottom-bar">
-  <span class="status" id="saveStatus" role="status" aria-live="polite">Loaded from browser storage. All edits are saved locally in your browser only.</span>
-  <span class="disclaimer">Horizon V1.0 | <a class="feedback-link" href="https://github.com/zedcade/horizon" target="_blank" rel="noopener noreferrer">GitHub</a> · <a class="feedback-link" href="https://github.com/zedcade/horizon/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></span>
+  <span class="status" id="saveStatus" role="status" aria-live="polite">Loaded from browser storage.</span>
+  <span class="disclaimer">Horizon V1.0 — open source, MIT licensed. All edits are saved locally in your browser only. | <a class="feedback-link" href="https://github.com/zedcade/horizon" target="_blank" rel="noopener noreferrer">GitHub</a> · <a class="feedback-link" href="https://github.com/zedcade/horizon/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></span>
   <button id="exportJsonBtn" title="Export JSON"><span class="io-arrow">⬆</span> Export</button>
   <button id="importJsonBtn" title="Import JSON"><span class="io-arrow">⬇</span> Import</button>
   <input type="file" id="importJsonInput" accept="application/json" style="display:none;">
@@ -1085,8 +1244,10 @@
 </div>
 
 <script>
-const STORAGE_KEY = "vf_board_v3";
-const THEME_KEY = "vf_board_theme";
+const STORAGE_KEY = "horizon_board_v1";
+const LEGACY_STORAGE_KEYS = ["vf_board_v3"]; // pre-rename key(s) — auto-migrated in loadStore()
+const THEME_KEY = "horizon_board_theme";
+const LEGACY_THEME_KEYS = ["vf_board_theme"];
 
 function localDateKey(d = new Date()) {
   const y = d.getFullYear();
@@ -1226,7 +1387,26 @@ function secUid() { return 'sec_' + Math.random().toString(36).slice(2, 10); }
 
 // ---- Single source of truth for a point's metadata shape (was duplicated ~7x) ----
 function defaultPointMeta() {
-  return { owner: "", due: "", status: "Not Started", link: "", flagged: false, updatedAt: null };
+  // ebitdaImpact: projected EBITDA impact in dollars if this point is completed
+  // successfully, entered by the point owner. null = not estimated/not applicable
+  // (not the same as 0, which means "estimated at zero impact").
+  // confidence: 0-100, how confident the estimator is in ebitdaImpact actually
+  // landing. Defaults to 100 (full confidence) so points without an explicit
+  // confidence estimate aren't silently discounted in weighted rollups.
+  // financeConfirmed: a distinct, separate checkbox from status="Done" — status
+  // means "the task is complete"; financeConfirmed means "Finance has actually
+  // verified the dollars landed". Keeping them separate avoids conflating
+  // "we did the work" with "the P&L shows it".
+  // completedAt: timestamp set the moment status is changed TO "Done" (cleared
+  // if status is changed away from Done). Distinct from updatedAt, which bumps
+  // on every status change — completedAt only ever reflects the most recent
+  // completion, which is what the Stats heatmap plots.
+  // effort: estimated effort (any consistent unit — hours, story points, etc.)
+  // used only to compute ROI (ebitdaImpact / effort) in the Stats view.
+  return {
+    owner: "", due: "", status: "Not Started", link: "", flagged: false, updatedAt: null,
+    ebitdaImpact: null, confidence: 100, financeConfirmed: false, completedAt: null, effort: null
+  };
 }
 
 // ---- Ensures a section object has a stable id + correctly-sized priorities/meta arrays.
@@ -1240,7 +1420,15 @@ function normalizeSection(sec) {
   if (!Array.isArray(sec.meta) || sec.meta.length !== sec.points.length) {
     sec.meta = sec.points.map((_, idx) => (sec.meta && sec.meta[idx]) || defaultPointMeta());
   }
-  sec.meta.forEach(m => { if (m && m.updatedAt === undefined) m.updatedAt = null; });
+  sec.meta.forEach(m => {
+    if (!m) return;
+    if (m.updatedAt === undefined) m.updatedAt = null;
+    if (m.ebitdaImpact === undefined) m.ebitdaImpact = null;
+    if (m.confidence === undefined || m.confidence === null || isNaN(m.confidence)) m.confidence = 100;
+    if (m.financeConfirmed === undefined) m.financeConfirmed = false;
+    if (m.completedAt === undefined) m.completedAt = (m.status === "Done" ? (m.updatedAt || null) : null);
+    if (m.effort === undefined) m.effort = null;
+  });
   if (sec.collapsed === undefined) sec.collapsed = false;
   return sec;
 }
@@ -1265,9 +1453,9 @@ function pushTrash(init, entry) {
 
 function defaultSections() {
   const secs = [
-    { title: "Card 1", points: ["Sample point — click to edit or delete"] },
-    { title: "Card 2", points: ["Sample point — click to edit or delete"] },
-    { title: "Card 3", points: ["Sample point — click to edit or delete"] }
+    { title: "Card 1", points: ["Sample task — click to edit or delete"] },
+    { title: "Card 2", points: ["Sample task — click to edit or delete"] },
+    { title: "Card 3", points: ["Sample task — click to edit or delete"] }
   ];
   return secs.map(s => normalizeSection({
     ...s,
@@ -1297,6 +1485,22 @@ function defaultInitiative() {
   };
 }
 
+// Ensures a new/duplicated initiative's title doesn't collide with an existing
+// one — e.g. creating a second default initiative gets "My Initiative 2"
+// instead of a second identical "My Initiative".
+function uniqueInitiativeTitle(baseTitle) {
+  const existingTitles = new Set((store && store.initiatives ? store.initiatives : []).map(i => i.title));
+  const candidate = baseTitle.slice(0, TITLE_MAX_CHARS);
+  if (!existingTitles.has(candidate)) return candidate;
+  let n = 2, numbered;
+  do {
+    const suffix = " " + n;
+    numbered = baseTitle.slice(0, Math.max(1, TITLE_MAX_CHARS - suffix.length)) + suffix;
+    n++;
+  } while (existingTitles.has(numbered));
+  return numbered;
+}
+
 // Deep-clones an initiative (fresh id, fresh section ids so Parking Lot / Undo
 // identity stays correct) and switches to it. Addresses the lack of a "duplicate
 // initiative" action — useful for templating a recurring meeting structure.
@@ -1305,7 +1509,7 @@ function duplicateInitiative(initId) {
   if (!source) return;
   const clone = JSON.parse(JSON.stringify(source));
   clone.id = uid();
-  clone.title = (source.title + " (Copy)").slice(0, TITLE_MAX_CHARS);
+  clone.title = uniqueInitiativeTitle(source.title + " (Copy)");
   clone.trash = [];
   (clone.sections || []).forEach(sec => { sec.id = secUid(); });
   store.initiatives.push(clone);
@@ -1387,21 +1591,41 @@ function normalizeStore(parsed) {
 
 async function loadStore() {
   try {
-    const idbData = await idbGet(STORAGE_KEY);
+    let idbData = await idbGet(STORAGE_KEY);
+    // STORAGE_KEY rename migration: if nothing lives under the new key yet,
+    // check the old key(s) so existing users' boards don't appear to vanish.
+    if (!idbData) {
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        try {
+          const legacyData = await idbGet(legacyKey);
+          if (legacyData) { idbData = legacyData; break; }
+        } catch (e) { /* try the next legacy key */ }
+      }
+    }
     if (idbData) {
       const normalized = normalizeStore(idbData);
-      if (normalized) return normalized;
+      if (normalized) {
+        await idbSet(STORAGE_KEY, normalized).catch(() => {});
+        return normalized;
+      }
     }
   } catch (e) { console.warn("Horizon: IndexedDB read failed.", e); }
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        raw = localStorage.getItem(legacyKey);
+        if (raw) break;
+      }
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       const normalized = normalizeStore(parsed);
       if (normalized) {
         await idbSet(STORAGE_KEY, normalized).catch(() => {});
         localStorage.removeItem(STORAGE_KEY);
+        LEGACY_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
         return normalized;
       }
     }
@@ -1708,6 +1932,87 @@ function commitDueDate(sIdx, pIdx, newDue) {
   if (input) input.value = newDue;
 }
 
+// ---- Shared point-marker visual builder ----
+// Builds the small "priority dot + status ring" (or blocked stop-icon) visual
+// used by both the meeting timeline markers and the Gantt due-date markers, so
+// the two views render identically. Returns a DOM node the caller appends
+// inside its own positioned/interactive marker element (drag, click, tooltip
+// binding stay per-view — only the visual is shared).
+//
+// Ring precedence — only one ring is shown at a time, since layering several
+// at this scale would be unreadable:
+//   1. Blocked            -> the dot/ring are replaced entirely by a 🛑 icon.
+//   2. No owner set       -> pink ring (full circle) — needs an owner assigned.
+//   3. Status "Not Started" -> grey ring (full circle) — nothing done yet.
+//   4. Otherwise           -> green ring, arc length = % complete (5/25/50/75/100%),
+//                             i.e. the "gap" in the ring shows how much is left.
+const PT_MARKER_RING_R = 7.4; // sized to sit snug against the 12px dot (see .pt-marker-dot) with ~no gap
+const PT_MARKER_RING_CIRC = 2 * Math.PI * PT_MARKER_RING_R;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Shared "how far apart to stack markers due on the same date" gap, in px.
+// Used by both the header timeline (renderTimeline) and the Gantt view's
+// due-date markers (renderGanttView) so the two views behave consistently
+// instead of each hardcoding their own spacing formula.
+const MARKER_STACK_GAP_PX = 18;
+
+// Converts a marker's position within a stack of `count` same-date markers into
+// a top-offset percentage, given the pixel height of the container it's
+// absolutely positioned within (`containerHeightPx` — must match that
+// container's actual CSS height). Markers are spread evenly around the
+// vertical center (50%), `gapPx` apart, then clamped to `clampPct` so a long
+// stack can't push markers outside the container.
+function computeMarkerStackTopPct(stackIdx, count, containerHeightPx, gapPx, clampPct) {
+  const centerOffset = (count - 1) / 2;
+  const topPct = 50 + (stackIdx - centerOffset) * (gapPx / containerHeightPx * 100);
+  return Math.max(clampPct[0], Math.min(clampPct[1], topPct));
+}
+
+function buildPointMarkerVisual({ priority, status, owner, flagged, isOverdue }) {
+  const wrap = document.createElement("div");
+  wrap.className = "pt-marker";
+
+  if (status === "Blocked") {
+    wrap.classList.add("pt-marker-blocked");
+    const icon = document.createElement("span");
+    icon.className = "pt-marker-blocked-icon";
+    icon.textContent = "🛑";
+    wrap.appendChild(icon);
+    return wrap;
+  }
+
+  let ringClass, progress;
+  if (!owner) { ringClass = "pt-ring-noowner"; progress = 1; }
+  else if (status === "Not Started") { ringClass = "pt-ring-notstarted"; progress = 1; }
+  else { ringClass = "pt-ring-progress"; progress = pointProgressValue(status); }
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", "pt-marker-ring");
+  svg.setAttribute("viewBox", "0 0 20 20");
+
+  const track = document.createElementNS(SVG_NS, "circle");
+  track.setAttribute("class", "pt-ring-track");
+  track.setAttribute("cx", "10"); track.setAttribute("cy", "10"); track.setAttribute("r", String(PT_MARKER_RING_R));
+  svg.appendChild(track);
+
+  const arc = document.createElementNS(SVG_NS, "circle");
+  arc.setAttribute("class", "pt-ring-arc " + ringClass);
+  arc.setAttribute("cx", "10"); arc.setAttribute("cy", "10"); arc.setAttribute("r", String(PT_MARKER_RING_R));
+  const dashOn = PT_MARKER_RING_CIRC * Math.max(0, Math.min(1, progress));
+  arc.setAttribute("stroke-dasharray", dashOn.toFixed(2) + " " + PT_MARKER_RING_CIRC.toFixed(2));
+  svg.appendChild(arc);
+  wrap.appendChild(svg);
+
+  const dot = document.createElement("div");
+  dot.className = "pt-marker-dot prio-" + (priority || 1);
+  if (status === "Done") dot.classList.add("marker-done");
+  if (flagged) dot.classList.add("marker-flagged");
+  if (isOverdue) dot.classList.add("marker-overdue");
+  wrap.appendChild(dot);
+
+  return wrap;
+}
+
 function renderTimeline() {
   const init = currentInitiative();
   const track = document.getElementById("timelineTrack");
@@ -1818,7 +2123,7 @@ function renderTimeline() {
           sectionTitle: sec.title,
           text: pt,
           due: meta.due,
-          owner: meta.owner || "Unassigned",
+          owner: meta.owner || "",
           status: meta.status || "Not Started",
           flagged: !!meta.flagged,
           priority: (sec.priorities && sec.priorities[pIdx]) || 1
@@ -1830,7 +2135,7 @@ function renderTimeline() {
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "timeline-empty";
-    empty.textContent = "No due dates set yet — add one via a point's ⋯ menu, or check back once dates are set";
+    empty.textContent = "No due dates set yet — add one via a task's ⋯ menu, or check back once dates are set";
     track.appendChild(empty);
     return;
   }
@@ -1843,19 +2148,21 @@ function renderTimeline() {
     groups[bucket].push({ item, pct });
   });
 
-  const rowHeightPx = 15;
+  // Must match .timeline-track's CSS height.
+  const TIMELINE_TRACK_HEIGHT_PX = 55;
 
   function buildMarker(item, pct, stackTop) {
     const dueDate = new Date(item.due + "T12:00:00");
     const isOverdue = dueDate < today && item.status !== "Done";
 
     const marker = document.createElement("div");
-    marker.className = "timeline-marker prio-" + item.priority;
+    marker.className = "timeline-marker";
     marker.dataset.sIdx = item.sIdx;
     marker.dataset.pIdx = item.pIdx;
-    if (item.status === "Done") marker.classList.add("marker-done");
-    if (item.flagged) marker.classList.add("marker-flagged");
-    if (isOverdue) marker.classList.add("marker-overdue");
+    marker.appendChild(buildPointMarkerVisual({
+      priority: item.priority, status: item.status, owner: item.owner,
+      flagged: item.flagged, isOverdue
+    }));
     marker.style.left = pct + "%";
     marker.style.top = stackTop + "%";
     marker.tabIndex = 0;
@@ -1936,10 +2243,8 @@ function renderTimeline() {
   Object.values(groups).forEach(group => {
     group.forEach((entry, stackIdx) => {
       const { item, pct } = entry;
-      const centerOffset = (group.length - 1) / 2;
-      const topPct = 50 + (stackIdx - centerOffset) * (rowHeightPx / 46 * 100) * 0.7;
-      const clampedTop = Math.max(14, Math.min(86, topPct));
-      const marker = buildMarker(item, pct, clampedTop);
+      const topPct = computeMarkerStackTopPct(stackIdx, group.length, TIMELINE_TRACK_HEIGHT_PX, MARKER_STACK_GAP_PX, [12, 88]);
+      const marker = buildMarker(item, pct, topPct);
       track.appendChild(marker);
     });
   });
@@ -2010,6 +2315,7 @@ function renderDropdown() {
   addRow.textContent = "+ Add Initiative";
   addRow.addEventListener("click", () => {
     const newInit = defaultInitiative();
+    newInit.title = uniqueInitiativeTitle(newInit.title);
     store.initiatives.push(newInit);
     store.currentId = newInit.id;
     saveStore();
@@ -2129,6 +2435,10 @@ function buildInitiativeTxt(init) {
   let txt = "HORIZON INITIATIVE — MEETING PLANNING BOARD\n";
   txt += "Initiative: " + init.title + "\n";
   txt += "Owner: " + init.owner + " | Target: " + init.targetDate + "\n";
+  const ebitdaTotals = computeInitiativeEbitdaImpact(init);
+  if (ebitdaTotals.estimatedCount > 0) {
+    txt += "EBITDA Impact: " + formatEbitda(ebitdaTotals.realized) + " realized of " + formatEbitda(ebitdaTotals.potential) + " potential (" + Math.round(ebitdaTotals.pct) + "%)\n";
+  }
   txt += "Exported: " + new Date().toLocaleString() + "\n";
   txt += "=".repeat(60) + "\n\n";
   init.sections.forEach((section, sIdx) => {
@@ -2146,6 +2456,7 @@ function buildInitiativeTxt(init) {
       if (m.status && m.status !== "Not Started") details.push("Status: " + m.status);
       if (m.updatedAt) details.push("Updated: " + new Date(m.updatedAt).toLocaleDateString());
       if (m.link) details.push("Link: " + m.link);
+      if (m.ebitdaImpact !== null && m.ebitdaImpact !== undefined && !isNaN(m.ebitdaImpact)) details.push("EBITDA Impact: " + formatEbitda(m.ebitdaImpact));
       if (details.length) line += " (" + details.join(" | ") + ")";
       txt += line + "\n";
     });
@@ -2188,9 +2499,13 @@ function buildInitiativeSheetRows(init) {
   rows.push(["Owner", init.owner]);
   rows.push(["Start Date", init.startDate || ""]);
   rows.push(["Target Date", init.targetDate]);
+  const ebitdaTotals = computeInitiativeEbitdaImpact(init);
+  if (ebitdaTotals.estimatedCount > 0) {
+    rows.push(["EBITDA Impact", formatEbitda(ebitdaTotals.realized) + " realized of " + formatEbitda(ebitdaTotals.potential) + " potential (" + Math.round(ebitdaTotals.pct) + "%)"]);
+  }
   rows.push(["Exported", new Date().toLocaleString()]);
   rows.push([]);
-  rows.push(["#", "Section / Point", "Priority", "Owner", "Due", "Status", "Flagged", "Blocked", "Stale", "Last Updated", "Link"]);
+  rows.push(["#", "Section / Task", "Priority", "Owner", "Due", "Status", "Flagged", "Blocked", "Stale", "Last Updated", "Link", "EBITDA Impact ($)"]);
   init.sections.forEach((section, sIdx) => {
     const cs = computeCardStatus(section);
     rows.push([(sIdx + 1) + ". " + stripLeadingNumber(section.title), "Progress: " + Math.round(cs.weightedProgress * 100) + "%" + (cs.hasBlocked ? " (has blocked items)" : "")]);
@@ -2200,7 +2515,8 @@ function buildInitiativeSheetRows(init) {
       rows.push([
         "", pt, "P" + prioNum, m.owner || "", m.due || "", m.status || "Not Started",
         m.flagged ? "Yes" : "", m.status === "Blocked" ? "Yes" : "", isStale(m) ? "Yes" : "",
-        m.updatedAt ? new Date(m.updatedAt).toLocaleDateString() : "", m.link || ""
+        m.updatedAt ? new Date(m.updatedAt).toLocaleDateString() : "", m.link || "",
+        (m.ebitdaImpact === null || m.ebitdaImpact === undefined || isNaN(m.ebitdaImpact)) ? "" : m.ebitdaImpact
       ]);
     });
     rows.push([]);
@@ -2208,7 +2524,7 @@ function buildInitiativeSheetRows(init) {
   if (init.parkingLot && init.parkingLot.length) {
     rows.push(["Parking Lot"]);
     init.parkingLot.forEach(p => {
-      rows.push(["", p.text, "P" + (p.priority || 1), (p.meta && p.meta.owner) || "", (p.meta && p.meta.due) || "", (p.meta && p.meta.status) || "", "", "", "", "", "From: " + (p.originSectionTitle || "Unknown")]);
+      rows.push(["", p.text, "P" + (p.priority || 1), (p.meta && p.meta.owner) || "", (p.meta && p.meta.due) || "", (p.meta && p.meta.status) || "", "", "", "", "", "From: " + (p.originSectionTitle || "Unknown"), (p.meta && p.meta.ebitdaImpact !== null && p.meta.ebitdaImpact !== undefined && !isNaN(p.meta.ebitdaImpact)) ? p.meta.ebitdaImpact : ""]);
     });
     rows.push([]);
   }
@@ -2300,7 +2616,7 @@ document.getElementById("saveCurrentXlsBtn").addEventListener("click", () => {
   const usedNames = {};
   const rows = buildInitiativeSheetRows(init);
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"] = [{ wch: 4 }, { wch: 60 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 9 }, { wch: 9 }, { wch: 7 }, { wch: 12 }, { wch: 30 }];
+  ws["!cols"] = [{ wch: 4 }, { wch: 60 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 9 }, { wch: 9 }, { wch: 7 }, { wch: 12 }, { wch: 30 }, { wch: 16 }];
   XLSX.utils.book_append_sheet(wb, ws, makeUniqueSheetName(init.title, usedNames));
   downloadWorkbook(wb, init.title.replace(/[^a-z0-9]+/gi, "_") + "_" + todayLocalStamp() + ".xlsx");
   saveStore();
@@ -2313,7 +2629,7 @@ document.getElementById("saveAllXlsBtn").addEventListener("click", () => {
   store.initiatives.forEach(init => {
     const rows = buildInitiativeSheetRows(init);
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws["!cols"] = [{ wch: 4 }, { wch: 60 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 9 }, { wch: 9 }, { wch: 7 }, { wch: 12 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 4 }, { wch: 60 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 9 }, { wch: 9 }, { wch: 7 }, { wch: 12 }, { wch: 30 }, { wch: 16 }];
     XLSX.utils.book_append_sheet(wb, ws, makeUniqueSheetName(init.title, usedNames));
   });
   downloadWorkbook(wb, "Horizon_All_Initiatives_" + todayLocalStamp() + ".xlsx");
@@ -2671,7 +2987,7 @@ function renderParkingLot() {
   if (!init.parkingLot.length) {
     const hint = document.createElement("div");
     hint.className = "parking-lot-hint";
-    hint.textContent = "Drag a point here to park it for later";
+    hint.textContent = "Drag a task here to park it for later";
     body.appendChild(hint);
     return;
   }
@@ -2893,7 +3209,12 @@ document.getElementById("undoBtn").addEventListener("click", () => {
       } else if (last.pIdx !== undefined && sec.points[last.pIdx] !== undefined) {
         if (last.field === "text") sec.points[last.pIdx] = last.prevValue;
         else if (last.field === "priority") sec.priorities[last.pIdx] = last.prevValue;
-        else if (sec.meta[last.pIdx]) sec.meta[last.pIdx][last.field] = last.prevValue;
+        else if (sec.meta[last.pIdx]) {
+          sec.meta[last.pIdx][last.field] = last.prevValue;
+          if (last.field === "status") {
+            sec.meta[last.pIdx].completedAt = last.prevValue === "Done" ? (sec.meta[last.pIdx].completedAt || Date.now()) : null;
+          }
+        }
       }
     }
   }
@@ -2999,6 +3320,78 @@ function computeCardStatus(section) {
   return { weightedProgress, hasBlocked, remaining, severity };
 }
 
+// ---- EBITDA Impact rollup ----
+// Methodology (see also the in-app Stats view, which surfaces this across
+// initiatives):
+//   - "Potential" = sum of every estimated point's EBITDA impact, regardless of
+//     status. This is the total financial opportunity currently on the board.
+//   - "Realized" = sum of EBITDA impact for points whose status is "Done" only.
+//     Impact is treated as binary (delivered or not) rather than pro-rated by
+//     % progress — a half-finished initiative rarely delivers half the
+//     financial benefit, so crediting partial credit here would overstate
+//     realized impact.
+//   - "% Realized" = Realized / Potential (null if nothing has been estimated
+//     yet, to distinguish "0% realized" from "not measured").
+//   - Blocked/at-risk points still count toward Potential (they're still
+//     committed spend/opportunity) — that's what makes flagging them matter:
+//     their impact is what's at risk of slipping.
+// Points with ebitdaImpact === null are excluded entirely (not treated as $0),
+// so unestimated points don't silently drag down the rollup — they simply
+// aren't part of it until someone estimates them.
+function computeInitiativeEbitdaImpact(init) {
+  let potential = 0, realized = 0, estimatedCount = 0, doneEstimatedCount = 0;
+  let weightedPotential = 0, financeConfirmedRealized = 0, financeConfirmedCount = 0;
+  (init.sections || []).forEach(sec => {
+    (sec.meta || []).forEach(m => {
+      if (!m || m.ebitdaImpact === null || m.ebitdaImpact === undefined || isNaN(m.ebitdaImpact)) return;
+      estimatedCount++;
+      potential += m.ebitdaImpact;
+      const conf = (m.confidence === null || m.confidence === undefined || isNaN(m.confidence)) ? 100 : m.confidence;
+      weightedPotential += m.ebitdaImpact * (conf / 100);
+      if (m.status === "Done") {
+        realized += m.ebitdaImpact;
+        doneEstimatedCount++;
+        if (m.financeConfirmed) { financeConfirmedRealized += m.ebitdaImpact; financeConfirmedCount++; }
+      }
+    });
+  });
+  const pct = estimatedCount > 0 && potential !== 0 ? (realized / potential) * 100 : null;
+  const financeConfirmedPct = estimatedCount > 0 && potential !== 0 ? (financeConfirmedRealized / potential) * 100 : null;
+  return {
+    potential, realized, pct, estimatedCount, doneEstimatedCount,
+    weightedPotential, financeConfirmedRealized, financeConfirmedCount, financeConfirmedPct
+  };
+}
+
+function computeAllInitiativesEbitdaImpact(initiatives) {
+  let potential = 0, realized = 0, estimatedCount = 0, doneEstimatedCount = 0;
+  let weightedPotential = 0, financeConfirmedRealized = 0, financeConfirmedCount = 0;
+  const perInitiative = (initiatives || []).map(init => {
+    const r = computeInitiativeEbitdaImpact(init);
+    potential += r.potential; realized += r.realized;
+    estimatedCount += r.estimatedCount; doneEstimatedCount += r.doneEstimatedCount;
+    weightedPotential += r.weightedPotential; financeConfirmedRealized += r.financeConfirmedRealized;
+    financeConfirmedCount += r.financeConfirmedCount;
+    return Object.assign({ init }, r);
+  });
+  const pct = estimatedCount > 0 && potential !== 0 ? (realized / potential) * 100 : null;
+  const financeConfirmedPct = estimatedCount > 0 && potential !== 0 ? (financeConfirmedRealized / potential) * 100 : null;
+  return {
+    potential, realized, pct, estimatedCount, doneEstimatedCount,
+    weightedPotential, financeConfirmedRealized, financeConfirmedCount, financeConfirmedPct, perInitiative
+  };
+}
+
+function formatEbitda(n) {
+  if (n === null || n === undefined || isNaN(n)) return "—";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e9) return sign + "$" + (abs / 1e9).toFixed(1) + "B";
+  if (abs >= 1e6) return sign + "$" + (abs / 1e6).toFixed(1) + "M";
+  if (abs >= 1e3) return sign + "$" + (abs / 1e3).toFixed(0) + "K";
+  return sign + "$" + abs.toFixed(0);
+}
+
 function renderInitProgress() {
   const init = currentInitiative();
   let totalWeight = 0, weightedSum = 0, hasAny = false;
@@ -3037,8 +3430,13 @@ function renderInitProgress() {
     return items.map(it => '<span class="ipt-list ' + cssClass + '">' + escapeHtml(stripLeadingNumber(it.section)) + ' — ' + escapeHtml(it.text) + '</span>').join("");
   }
   function buildProgressTooltipHtml() {
+    const ebitda = computeInitiativeEbitdaImpact(init);
+    const ebitdaLine = ebitda.estimatedCount > 0
+      ? '<span class="ipt-row">💰 EBITDA: ' + formatEbitda(ebitda.realized) + ' realized of ' + formatEbitda(ebitda.potential) + ' potential (' + Math.round(ebitda.pct) + '%)</span>'
+      : '<span class="ipt-row">💰 EBITDA: not estimated yet</span>';
     return '<span class="ipt-title">Priority-weighted progress</span>' +
-      '<span class="ipt-row">' + doneCount + ' of ' + totalCount + ' point(s) done</span>' +
+      '<span class="ipt-row">' + doneCount + ' of ' + totalCount + ' task(s) done</span>' +
+      ebitdaLine +
       '<span class="ipt-row ipt-blocked">🛑 Blocked (' + blockedItems.length + ')</span>' + buildList(blockedItems, "ipt-blocked") +
       '<span class="ipt-row ipt-flagged">🚩 At risk (' + flaggedItems.length + ')</span>' + buildList(flaggedItems, "ipt-flagged") +
       '<span class="ipt-row ipt-overdue">⏰ Overdue (' + overdueItems.length + ')</span>' + buildList(overdueItems, "ipt-overdue");
@@ -3376,7 +3774,7 @@ function renderBoard() {
       span.className = "point-text";
       span.contentEditable = true;
       span.textContent = pt;
-      span.setAttribute("aria-label", "Point text, editable");
+      span.setAttribute("aria-label", "Task text, editable");
       span.addEventListener("focus", () => { span.dataset.prevText = span.textContent; });
       span.addEventListener("blur", () => {
         const newText = span.textContent.trim();
@@ -3418,7 +3816,7 @@ function renderBoard() {
       expandBtn.className = "expand-btn";
       expandBtn.textContent = "⋯";
       expandBtn.title = "Owner, due date, status, link";
-      expandBtn.setAttribute("aria-label", "Show owner, due date, status, and link for this point");
+      expandBtn.setAttribute("aria-label", "Show owner, due date, status, and link for this task");
       expandBtn.addEventListener("click", () => { li.classList.toggle("expanded"); });
 
       const parkBtn = document.createElement("button");
@@ -3431,8 +3829,8 @@ function renderBoard() {
       const delBtn = document.createElement("button");
       delBtn.className = "del-btn";
       delBtn.textContent = "✕";
-      delBtn.title = "Delete point";
-      delBtn.setAttribute("aria-label", "Delete point: " + pt);
+      delBtn.title = "Delete task";
+      delBtn.setAttribute("aria-label", "Delete task: " + pt);
       delBtn.addEventListener("click", () => { deletePoint(sIdx, pIdx); });
 
       li.addEventListener("dragstart", (e) => {
@@ -3523,8 +3921,10 @@ function renderBoard() {
       });
       statusSelect.addEventListener("change", () => {
         pushEditUndo(section, pIdx, "status", meta.status || "Not Started");
-        init.sections[sIdx].meta[pIdx].status = statusSelect.value;
+        const newStatus = statusSelect.value;
+        init.sections[sIdx].meta[pIdx].status = newStatus;
         init.sections[sIdx].meta[pIdx].updatedAt = Date.now();
+        init.sections[sIdx].meta[pIdx].completedAt = newStatus === "Done" ? Date.now() : null;
         saveStore();
         renderBoard();
         renderTimeline();
@@ -3565,18 +3965,109 @@ function renderBoard() {
       }
       linkLabel.appendChild(linkRow);
 
+      const ebitdaLabel = document.createElement("label");
+      ebitdaLabel.textContent = "EBITDA Impact ($)";
+      ebitdaLabel.title = "Projected EBITDA impact if this task is completed successfully";
+      const ebitdaInput = document.createElement("input");
+      ebitdaInput.type = "number";
+      ebitdaInput.step = "any";
+      ebitdaInput.inputMode = "decimal";
+      ebitdaInput.placeholder = "e.g. 50000";
+      ebitdaInput.value = (meta.ebitdaImpact === null || meta.ebitdaImpact === undefined) ? "" : meta.ebitdaImpact;
+      ebitdaInput.addEventListener("blur", () => {
+        const raw = ebitdaInput.value.trim();
+        const newVal = raw === "" ? null : Number(raw);
+        const prevVal = (meta.ebitdaImpact === undefined) ? null : meta.ebitdaImpact;
+        if (newVal !== prevVal) pushEditUndo(section, pIdx, "ebitdaImpact", prevVal);
+        init.sections[sIdx].meta[pIdx].ebitdaImpact = (newVal === null || isNaN(newVal)) ? null : newVal;
+        saveStore();
+        renderBoard();
+        renderInitProgress();
+      });
+      ebitdaLabel.appendChild(ebitdaInput);
+
+      const confidenceLabel = document.createElement("label");
+      confidenceLabel.textContent = "Confidence (%)";
+      confidenceLabel.title = "How confident is this EBITDA estimate? Used to compute a risk-adjusted (weighted) potential in Stats.";
+      const confidenceInput = document.createElement("input");
+      confidenceInput.type = "number";
+      confidenceInput.min = "0";
+      confidenceInput.max = "100";
+      confidenceInput.step = "1";
+      confidenceInput.inputMode = "numeric";
+      confidenceInput.value = (meta.confidence === null || meta.confidence === undefined || isNaN(meta.confidence)) ? "100" : meta.confidence;
+      confidenceInput.addEventListener("blur", () => {
+        let newVal = Number(confidenceInput.value);
+        if (isNaN(newVal)) newVal = 100;
+        newVal = Math.max(0, Math.min(100, newVal));
+        const prevVal = (meta.confidence === null || meta.confidence === undefined || isNaN(meta.confidence)) ? 100 : meta.confidence;
+        if (newVal !== prevVal) pushEditUndo(section, pIdx, "confidence", prevVal);
+        init.sections[sIdx].meta[pIdx].confidence = newVal;
+        confidenceInput.value = newVal;
+        saveStore();
+        renderInitProgress();
+      });
+      confidenceLabel.appendChild(confidenceInput);
+
+      const effortLabel = document.createElement("label");
+      effortLabel.textContent = "Effort";
+      effortLabel.title = "Estimated effort (hours, story points — any consistent unit). Used only to compute ROI ($ impact / effort) in Stats.";
+      const effortInput = document.createElement("input");
+      effortInput.type = "number";
+      effortInput.step = "any";
+      effortInput.min = "0";
+      effortInput.inputMode = "decimal";
+      effortInput.placeholder = "e.g. 8 (hrs)";
+      effortInput.value = (meta.effort === null || meta.effort === undefined) ? "" : meta.effort;
+      effortInput.addEventListener("blur", () => {
+        const raw = effortInput.value.trim();
+        const newVal = raw === "" ? null : Number(raw);
+        const prevVal = (meta.effort === undefined) ? null : meta.effort;
+        if (newVal !== prevVal) pushEditUndo(section, pIdx, "effort", prevVal);
+        init.sections[sIdx].meta[pIdx].effort = (newVal === null || isNaN(newVal) || newVal < 0) ? null : newVal;
+        saveStore();
+      });
+      effortLabel.appendChild(effortInput);
+
+      const financeLabel = document.createElement("label");
+      financeLabel.textContent = "Finance";
+      financeLabel.title = "Separate from Status: checking this means Finance has verified the EBITDA impact actually landed, not just that the task is done.";
+      const financeRow = document.createElement("div");
+      financeRow.className = "finance-confirm-row";
+      const financeCheckbox = document.createElement("input");
+      financeCheckbox.type = "checkbox";
+      financeCheckbox.id = "financeConfirmed-" + sIdx + "-" + pIdx;
+      financeCheckbox.checked = !!meta.financeConfirmed;
+      financeCheckbox.addEventListener("change", () => {
+        pushEditUndo(section, pIdx, "financeConfirmed", !!meta.financeConfirmed);
+        init.sections[sIdx].meta[pIdx].financeConfirmed = financeCheckbox.checked;
+        saveStore();
+        renderInitProgress();
+      });
+      const financeCheckLabel = document.createElement("label");
+      financeCheckLabel.htmlFor = financeCheckbox.id;
+      financeCheckLabel.className = "finance-confirm-text";
+      financeCheckLabel.textContent = "Confirmed";
+      financeRow.appendChild(financeCheckbox);
+      financeRow.appendChild(financeCheckLabel);
+      financeLabel.appendChild(financeRow);
+
       detailsDiv.appendChild(ownerLabel);
       detailsDiv.appendChild(dueLabel);
       detailsDiv.appendChild(statusLabel);
       detailsDiv.appendChild(linkLabel);
+      detailsDiv.appendChild(ebitdaLabel);
+      detailsDiv.appendChild(confidenceLabel);
+      detailsDiv.appendChild(effortLabel);
+      detailsDiv.appendChild(financeLabel);
 
       const pointMoveWrap = document.createElement("span");
       pointMoveWrap.className = "point-move-controls";
       const pointMoveUpBtn = document.createElement("button");
       pointMoveUpBtn.className = "point-move-btn";
       pointMoveUpBtn.textContent = "▲";
-      pointMoveUpBtn.title = "Move point up";
-      pointMoveUpBtn.setAttribute("aria-label", "Move point up: " + pt);
+      pointMoveUpBtn.title = "Move task up";
+      pointMoveUpBtn.setAttribute("aria-label", "Move task up: " + pt);
       pointMoveUpBtn.disabled = pIdx === 0;
       pointMoveUpBtn.addEventListener("click", () => {
         if (pIdx === 0) return;
@@ -3589,8 +4080,8 @@ function renderBoard() {
       const pointMoveDownBtn = document.createElement("button");
       pointMoveDownBtn.className = "point-move-btn";
       pointMoveDownBtn.textContent = "▼";
-      pointMoveDownBtn.title = "Move point down";
-      pointMoveDownBtn.setAttribute("aria-label", "Move point down: " + pt);
+      pointMoveDownBtn.title = "Move task down";
+      pointMoveDownBtn.setAttribute("aria-label", "Move task down: " + pt);
       pointMoveDownBtn.disabled = pIdx === section.points.length - 1;
       pointMoveDownBtn.addEventListener("click", () => {
         if (pIdx === section.points.length - 1) return;
@@ -3626,9 +4117,9 @@ function renderBoard() {
 
     const addBtn = document.createElement("button");
     addBtn.className = "add-btn";
-    addBtn.textContent = "+ Add point";
+    addBtn.textContent = "+ Add task";
     addBtn.addEventListener("click", () => {
-      init.sections[sIdx].points.push("New point");
+      init.sections[sIdx].points.push("New task");
       if (!Array.isArray(init.sections[sIdx].priorities)) init.sections[sIdx].priorities = [];
       init.sections[sIdx].priorities.push(1);
       if (!Array.isArray(init.sections[sIdx].meta)) init.sections[sIdx].meta = [];
@@ -3670,7 +4161,7 @@ function renderBoard() {
     init.sections.push({
       id: secUid(),
       title: "New Card",
-      points: ["New point"],
+      points: ["New task"],
       priorities: [1],
       meta: [defaultPointMeta()],
       collapsed: false
@@ -3847,7 +4338,7 @@ function applyTheme(theme) {
     themeToggleBtn.dataset.gtitle = "Switch to dark mode";
   }
 }
-let currentTheme = localStorage.getItem(THEME_KEY) || "light";
+let currentTheme = localStorage.getItem(THEME_KEY) || LEGACY_THEME_KEYS.map(k => localStorage.getItem(k)).find(Boolean) || "light";
 applyTheme(currentTheme);
 bindGTooltip(themeToggleBtn, () => '<span class="tt-row">' + escapeHtml(themeToggleBtn.dataset.gtitle) + '</span>');
 themeToggleBtn.addEventListener("click", () => {
@@ -3890,6 +4381,11 @@ window.addEventListener("beforeunload", (e) => {
 
 // ===== Gantt View (all initiatives) =====
 let ganttViewActive = false;
+let statsViewActive = false;
+let statsPeriod = "all";
+let statsCustomFrom = "";
+let statsCustomTo = "";
+let statsInitiativeFilter = "all";
 let ganttWindowStart = null;
 let ganttWindowMonths = 3;
 let ganttZoomMode = "month";
@@ -4163,19 +4659,21 @@ function renderGanttView() {
           const dueMs = new Date(dueStr + "T12:00:00").getTime();
           const duePct = pctOfMs(dueMs);
           if (duePct < 0 || duePct > 100) return;
+          // Must match .gantt-row-track's CSS height.
+          const GANTT_ROW_TRACK_HEIGHT_PX = 72;
           group.forEach((entry, stackIdx) => {
             const { sec, sIdx, pt, pIdx, meta } = entry;
             const isOverdue = dueMs < todayMs && meta.status !== "Done";
             const isDone = meta.status === "Done";
             const priority = (sec.priorities && sec.priorities[pIdx]) || 1;
             const marker = document.createElement("div");
-            marker.className = "gantt-point-marker prio-" + priority +
-              (isDone ? " marker-done" : "") +
-              (meta.flagged ? " marker-flagged" : "") +
-              (isOverdue ? " marker-overdue" : "");
+            marker.className = "gantt-point-marker";
+            marker.appendChild(buildPointMarkerVisual({
+              priority, status: meta.status, owner: meta.owner,
+              flagged: meta.flagged, isOverdue
+            }));
             marker.style.left = duePct + "%";
-            marker.style.top = (50 + (stackIdx - (group.length - 1) / 2) * 18) + "%";
-            marker.style.cursor = "pointer";
+            marker.style.top = computeMarkerStackTopPct(stackIdx, group.length, GANTT_ROW_TRACK_HEIGHT_PX, MARKER_STACK_GAP_PX, [15, 85]) + "%";
             marker.addEventListener("click", (e) => {
               e.stopImmediatePropagation();
               focusInitiativeAndPoint(init.id, sIdx, pIdx);
@@ -4239,6 +4737,7 @@ function ganttToggleZoom() {
 }
 
 function setGanttViewActive(active) {
+  if (active && statsViewActive) setStatsViewActive(false);
   ganttViewActive = active;
   const boardEl = document.getElementById("board");
   const ganttView = document.getElementById("ganttView");
@@ -4279,7 +4778,7 @@ function setGanttViewActive(active) {
   const filterBar = document.querySelector(".prio-filter-topbar");
   if (filterBar) {
     Array.from(filterBar.children).forEach(child => {
-      if (child.id === "ganttToggleBtn" || child.classList.contains("filter-gap")) return;
+      if (child.id === "ganttToggleBtn" || child.id === "statsToggleBtn" || child.classList.contains("filter-gap")) return;
       child.classList.toggle("gantt-dimmed", active);
     });
   }
@@ -4302,6 +4801,593 @@ document.getElementById("ganttPrevBtn").addEventListener("click", () => ganttPan
 document.getElementById("ganttNextBtn").addEventListener("click", () => ganttPanByMonths(1));
 document.getElementById("ganttTodayBtn").addEventListener("click", ganttJumpToToday);
 document.getElementById("ganttZoomBtn").addEventListener("click", ganttToggleZoom);
+
+// ---- Stats view ----
+// Time-period filtering is done by each point's *due date* (same field the
+// timeline/Gantt views already key off), not by when it was last edited — so
+// "This Quarter", for example, means "points due this quarter", consistent
+// with how the rest of the app already reasons about time. Points with no due
+// date are only included under "All Time", since there's no date to place them
+// against otherwise.
+function computeStatsTimeWindow(periodKey, customFrom, customTo) {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  let start = null, end = null;
+  if (periodKey === "ytd") {
+    start = new Date(now.getFullYear(), 0, 1);
+    end = now;
+  } else if (periodKey === "quarter") {
+    const q = Math.floor(now.getMonth() / 3);
+    start = new Date(now.getFullYear(), q * 3, 1);
+    end = now;
+  } else if (periodKey === "last12") {
+    start = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate() + 1);
+    end = now;
+  } else if (periodKey === "custom") {
+    start = customFrom ? new Date(customFrom + "T00:00:00") : null;
+    end = customTo ? new Date(customTo + "T23:59:59") : null;
+  }
+  return { start, end };
+}
+
+function pointInStatsWindow(meta, win) {
+  if (!win.start && !win.end) return true; // "All Time" — no filtering
+  if (!meta.due) return false; // can't place an undated point within a specific window
+  const d = new Date(meta.due + "T00:00:00");
+  if (win.start && d < win.start) return false;
+  if (win.end && d > win.end) return false;
+  return true;
+}
+
+function computeInitiativeStats(init, win) {
+  let total = 0, done = 0, blocked = 0, overdue = 0, atRisk = 0;
+  let ebitdaPotential = 0, ebitdaRealized = 0, ebitdaEstimatedCount = 0;
+  let ebitdaWeightedPotential = 0, ebitdaFinanceConfirmed = 0, financeConfirmedCount = 0;
+  let totalEffort = 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  (init.sections || []).forEach(sec => {
+    (sec.points || []).forEach((pt, i) => {
+      const m = (sec.meta && sec.meta[i]) || {};
+      if (!pointInStatsWindow(m, win)) return;
+      total++;
+      if (m.status === "Done") done++;
+      if (m.status === "Blocked") blocked++;
+      if (m.flagged) atRisk++;
+      if (m.due && m.status !== "Done") {
+        if (new Date(m.due + "T00:00:00") < today) overdue++;
+      }
+      if (m.effort !== null && m.effort !== undefined && !isNaN(m.effort)) totalEffort += m.effort;
+      if (m.ebitdaImpact !== null && m.ebitdaImpact !== undefined && !isNaN(m.ebitdaImpact)) {
+        ebitdaEstimatedCount++;
+        ebitdaPotential += m.ebitdaImpact;
+        const conf = (m.confidence === null || m.confidence === undefined || isNaN(m.confidence)) ? 100 : m.confidence;
+        ebitdaWeightedPotential += m.ebitdaImpact * (conf / 100);
+        if (m.status === "Done") {
+          ebitdaRealized += m.ebitdaImpact;
+          if (m.financeConfirmed) { ebitdaFinanceConfirmed += m.ebitdaImpact; financeConfirmedCount++; }
+        }
+      }
+    });
+  });
+  const ebitdaPct = ebitdaEstimatedCount > 0 && ebitdaPotential !== 0 ? (ebitdaRealized / ebitdaPotential) * 100 : null;
+  const roi = totalEffort > 0 ? ebitdaWeightedPotential / totalEffort : null;
+  return {
+    total, done, blocked, overdue, atRisk, ebitdaPotential, ebitdaRealized, ebitdaPct, ebitdaEstimatedCount,
+    ebitdaWeightedPotential, ebitdaFinanceConfirmed, financeConfirmedCount, totalEffort, roi
+  };
+}
+
+function populateStatsInitiativeSelect() {
+  const panel = document.getElementById("statsInitiativePanel");
+  const btn = document.getElementById("statsInitiativeBtn");
+  if (!panel || !btn) return;
+  const stillExists = statsInitiativeFilter === "all" || store.initiatives.some(i => i.id === statsInitiativeFilter);
+  statsInitiativeFilter = stillExists ? statsInitiativeFilter : "all";
+
+  const optionsData = [{ id: "all", title: "All Initiatives" }].concat(
+    store.initiatives.map(i => ({ id: i.id, title: i.title }))
+  );
+
+  panel.innerHTML = "";
+  optionsData.forEach(o => {
+    const opt = document.createElement("div");
+    opt.className = "filter-dropdown-option" + (o.id === statsInitiativeFilter ? " active" : "");
+    opt.textContent = o.title;
+    opt.dataset.initId = o.id;
+    opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.querySelectorAll(".filter-dropdown-option").forEach(el => el.classList.remove("active"));
+      opt.classList.add("active");
+      statsInitiativeFilter = o.id;
+      btn.textContent = o.title;
+      const caret = document.createElement("span");
+      caret.className = "filter-caret";
+      caret.textContent = "▾";
+      btn.appendChild(caret);
+      statsInitiativeDropdownPopover.close();
+      if (statsViewActive) renderStatsView();
+    });
+    panel.appendChild(opt);
+  });
+
+  const activeData = optionsData.find(o => o.id === statsInitiativeFilter) || optionsData[0];
+  btn.textContent = activeData.title;
+  const caret = document.createElement("span");
+  caret.className = "filter-caret";
+  caret.textContent = "▾";
+  btn.appendChild(caret);
+}
+
+// ---- Stats: completion heatmap ----
+// Plots task completions per day (GitHub-contributions style) using completedAt,
+// which is only ever set when a task's status is changed to "Done" (see the
+// status-select handler) — so this reflects actual completion dates, not due
+// dates or last-edited timestamps.
+function computeHeatmapRange(win) {
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const maxSpanDays = 370; // cap at ~53 weeks so "All Time" doesn't render years of empty cells
+
+  // `end` must cover the *entire* final day (up to 23:59:59.999), not just its
+  // midnight instant. completedAt is a real Date.now() timestamp with a
+  // time-of-day, so truncating end to midnight made every completion logged
+  // "today" fail the `d > range.end` check below — the heatmap looked empty
+  // right after marking things Done.
+  let end = (win.end && win.end < todayStart) ? new Date(win.end) : new Date(todayStart);
+  end.setHours(23, 59, 59, 999);
+
+  let start = win.start ? new Date(win.start) : new Date(end.getTime() - maxSpanDays * 24 * 60 * 60 * 1000);
+  start.setHours(0, 0, 0, 0);
+  if ((end - start) / (24 * 60 * 60 * 1000) > maxSpanDays) {
+    start = new Date(end.getTime() - maxSpanDays * 24 * 60 * 60 * 1000);
+    start.setHours(0, 0, 0, 0);
+  }
+  const alignedStart = new Date(start);
+  alignedStart.setDate(alignedStart.getDate() - alignedStart.getDay()); // back up to the preceding Sunday
+  alignedStart.setHours(0, 0, 0, 0);
+  return { start: alignedStart, end };
+}
+
+function buildHeatmapSection(initiatives, win) {
+  const range = computeHeatmapRange(win);
+  const days = [];
+  const cursor = new Date(range.start);
+  while (cursor <= range.end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  const counts = {};
+  initiatives.forEach(init => {
+    (init.sections || []).forEach(sec => {
+      (sec.meta || []).forEach(m => {
+        if (!m || !m.completedAt) return;
+        const d = new Date(m.completedAt);
+        if (d < range.start || d > range.end) return;
+        const key = localDateKey(d);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    });
+  });
+  const maxCount = Math.max(0, ...Object.values(counts));
+  const numWeeks = Math.ceil(days.length / 7);
+
+  const wrap = document.createElement("div");
+  wrap.className = "stats-heatmap";
+
+  const title = document.createElement("div");
+  title.className = "stats-section-title";
+  title.textContent = "Tasks completed over time";
+  wrap.appendChild(title);
+
+  if (maxCount === 0) {
+    const empty = document.createElement("div");
+    empty.className = "stats-empty";
+    empty.textContent = "No completions recorded in this range yet.";
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const scroll = document.createElement("div");
+  scroll.className = "stats-heatmap-scroll";
+
+  const monthsRow = document.createElement("div");
+  monthsRow.className = "stats-heatmap-months";
+  monthsRow.style.gridTemplateColumns = "repeat(" + numWeeks + ", 11px)";
+  let lastMonth = -1;
+  for (let w = 0; w < numWeeks; w++) {
+    const d = days[w * 7] || days[days.length - 1];
+    const label = document.createElement("div");
+    label.className = "stats-heatmap-month-label";
+    label.style.gridColumn = String(w + 1);
+    if (d.getMonth() !== lastMonth) {
+      label.textContent = d.toLocaleDateString(undefined, { month: "short" });
+      lastMonth = d.getMonth();
+    }
+    monthsRow.appendChild(label);
+  }
+  scroll.appendChild(monthsRow);
+
+  const grid = document.createElement("div");
+  grid.className = "stats-heatmap-grid";
+  grid.style.gridTemplateColumns = "repeat(" + numWeeks + ", 11px)";
+  days.forEach((d, i) => {
+    const key = localDateKey(d);
+    const count = counts[key] || 0;
+    const cell = document.createElement("div");
+    cell.className = "stats-heatmap-cell";
+    let level = 0;
+    if (count > 0) {
+      if (count <= Math.ceil(maxCount * 0.25)) level = 1;
+      else if (count <= Math.ceil(maxCount * 0.5)) level = 2;
+      else if (count <= Math.ceil(maxCount * 0.75)) level = 3;
+      else level = 4;
+    }
+    cell.dataset.level = String(level);
+    cell.style.gridColumn = String(Math.floor(i / 7) + 1);
+    cell.style.gridRow = String((i % 7) + 1);
+    cell.title = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) +
+      ": " + count + " task" + (count === 1 ? "" : "s") + " completed";
+    grid.appendChild(cell);
+  });
+  scroll.appendChild(grid);
+  wrap.appendChild(scroll);
+  return wrap;
+}
+
+// ---- Stats: impact-vs-effort (ROI) ranking ----
+// ROI here is simply $ impact / effort unit for tasks that have both an EBITDA
+// estimate and an effort estimate — a relative ranking signal for "where's the
+// money for the work", not a rigorous financial ROI (no time-value-of-money, no
+// cost basis for the effort itself). Points missing either figure are left out
+// rather than assumed zero, so an unestimated task doesn't rank as accidentally
+// infinite or zero.
+function collectPointsWithRoi(initiatives, win) {
+  const list = [];
+  initiatives.forEach(init => {
+    (init.sections || []).forEach(sec => {
+      (sec.points || []).forEach((pt, i) => {
+        const m = (sec.meta && sec.meta[i]) || {};
+        if (!pointInStatsWindow(m, win)) return;
+        if (m.ebitdaImpact === null || m.ebitdaImpact === undefined || isNaN(m.ebitdaImpact)) return;
+        if (m.effort === null || m.effort === undefined || isNaN(m.effort) || m.effort <= 0) return;
+        list.push({
+          init, sectionTitle: sec.title, text: pt,
+          impact: m.ebitdaImpact, effort: m.effort, roi: m.ebitdaImpact / m.effort, status: m.status || "Not Started"
+        });
+      });
+    });
+  });
+  list.sort((a, b) => b.roi - a.roi);
+  return list;
+}
+
+function buildStatsRoiRow(name, roi, onOpen, tooltip) {
+  const row = document.createElement("div");
+  row.className = "stats-roi-row";
+  if (tooltip) row.title = tooltip;
+  const nameEl = document.createElement("span");
+  nameEl.className = "stats-roi-name";
+  nameEl.textContent = name;
+  const valEl = document.createElement("span");
+  valEl.className = "stats-roi-value";
+  valEl.textContent = formatEbitda(roi) + "/unit";
+  row.appendChild(nameEl);
+  row.appendChild(valEl);
+  row.addEventListener("click", onOpen);
+  return row;
+}
+
+function buildTopRoiSection(initiatives, win) {
+  const wrap = document.createElement("div");
+  wrap.className = "stats-roi-grid";
+
+  const initRoi = initiatives
+    .map(init => ({ init, roi: computeInitiativeStats(init, win).roi }))
+    .filter(r => r.roi !== null)
+    .sort((a, b) => b.roi - a.roi)
+    .slice(0, 8);
+
+  const initCol = document.createElement("div");
+  initCol.className = "stats-roi-col";
+  const initTitle = document.createElement("div");
+  initTitle.className = "stats-section-title";
+  initTitle.textContent = "Top initiatives by ROI ($ impact / effort)";
+  initCol.appendChild(initTitle);
+  if (!initRoi.length) {
+    const empty = document.createElement("div");
+    empty.className = "stats-empty";
+    empty.textContent = "Estimate both EBITDA Impact and Effort on tasks to see ROI rankings.";
+    initCol.appendChild(empty);
+  } else {
+    const list = document.createElement("div");
+    list.className = "stats-roi-list";
+    initRoi.forEach(r => {
+      list.appendChild(buildStatsRoiRow(r.init.title, r.roi, () => {
+        store.currentId = r.init.id;
+        saveStore();
+        setStatsViewActive(false);
+        renderAll();
+      }, "Open this initiative"));
+    });
+    initCol.appendChild(list);
+  }
+  wrap.appendChild(initCol);
+
+  const taskRoi = collectPointsWithRoi(initiatives, win).slice(0, 8);
+  const taskCol = document.createElement("div");
+  taskCol.className = "stats-roi-col";
+  const taskTitle = document.createElement("div");
+  taskTitle.className = "stats-section-title";
+  taskTitle.textContent = "Top tasks by ROI ($ impact / effort)";
+  taskCol.appendChild(taskTitle);
+  if (!taskRoi.length) {
+    const empty = document.createElement("div");
+    empty.className = "stats-empty";
+    empty.textContent = "No tasks have both EBITDA Impact and Effort estimated yet.";
+    taskCol.appendChild(empty);
+  } else {
+    const list = document.createElement("div");
+    list.className = "stats-roi-list";
+    taskRoi.forEach(r => {
+      list.appendChild(buildStatsRoiRow(r.text, r.roi, () => {
+        store.currentId = r.init.id;
+        saveStore();
+        setStatsViewActive(false);
+        renderAll();
+      }, r.init.title + " — " + stripLeadingNumber(r.sectionTitle)));
+    });
+    taskCol.appendChild(list);
+  }
+  wrap.appendChild(taskCol);
+
+  return wrap;
+}
+
+function renderStatsView() {
+  const bodyEl = document.getElementById("statsBody");
+  if (!bodyEl) return;
+  populateStatsInitiativeSelect();
+  bodyEl.innerHTML = "";
+
+  const win = computeStatsTimeWindow(statsPeriod, statsCustomFrom, statsCustomTo);
+  const initiatives = statsInitiativeFilter === "all"
+    ? store.initiatives
+    : store.initiatives.filter(i => i.id === statsInitiativeFilter);
+
+  const agg = {
+    total: 0, done: 0, blocked: 0, overdue: 0, atRisk: 0,
+    ebitdaPotential: 0, ebitdaRealized: 0, ebitdaEstimatedCount: 0,
+    ebitdaWeightedPotential: 0, ebitdaFinanceConfirmed: 0, financeConfirmedCount: 0
+  };
+  const perInit = initiatives.map(init => {
+    const s = computeInitiativeStats(init, win);
+    agg.total += s.total; agg.done += s.done; agg.blocked += s.blocked;
+    agg.overdue += s.overdue; agg.atRisk += s.atRisk;
+    agg.ebitdaPotential += s.ebitdaPotential; agg.ebitdaRealized += s.ebitdaRealized;
+    agg.ebitdaEstimatedCount += s.ebitdaEstimatedCount;
+    agg.ebitdaWeightedPotential += s.ebitdaWeightedPotential;
+    agg.ebitdaFinanceConfirmed += s.ebitdaFinanceConfirmed;
+    agg.financeConfirmedCount += s.financeConfirmedCount;
+    return { init, stats: s };
+  });
+  const aggPct = agg.ebitdaEstimatedCount > 0 && agg.ebitdaPotential !== 0 ? (agg.ebitdaRealized / agg.ebitdaPotential) * 100 : null;
+  const aggFinancePct = agg.ebitdaEstimatedCount > 0 && agg.ebitdaPotential !== 0 ? (agg.ebitdaFinanceConfirmed / agg.ebitdaPotential) * 100 : null;
+
+  if (!initiatives.length) {
+    const empty = document.createElement("div");
+    empty.className = "stats-empty";
+    empty.textContent = "No initiatives to show.";
+    bodyEl.appendChild(empty);
+    return;
+  }
+
+  const kpiGrid = document.createElement("div");
+  kpiGrid.className = "stats-kpi-grid";
+  const kpis = [
+    { label: "Initiatives", value: initiatives.length },
+    { label: "Tasks in period", value: agg.total },
+    { label: "Completed", value: agg.done },
+    { label: "Blocked", value: agg.blocked, warn: agg.blocked > 0 },
+    { label: "Overdue", value: agg.overdue, warn: agg.overdue > 0 },
+    { label: "At Risk", value: agg.atRisk, warn: agg.atRisk > 0 },
+    { label: "EBITDA Realized", value: formatEbitda(agg.ebitdaRealized), ebitda: true },
+    { label: "EBITDA Potential", value: formatEbitda(agg.ebitdaPotential), ebitda: true },
+    { label: "% Realized", value: aggPct === null ? "—" : Math.round(aggPct) + "%", ebitda: true },
+    { label: "Weighted Potential (risk-adjusted)", value: formatEbitda(agg.ebitdaWeightedPotential), ebitda: true },
+    { label: "Finance-Confirmed Realized", value: formatEbitda(agg.ebitdaFinanceConfirmed), ebitda: true },
+    { label: "% Finance-Confirmed", value: aggFinancePct === null ? "—" : Math.round(aggFinancePct) + "%", ebitda: true }
+  ];
+  kpis.forEach(k => {
+    const card = document.createElement("div");
+    card.className = "stats-kpi-card" + (k.warn ? " stats-kpi-warn" : "") + (k.ebitda ? " stats-kpi-ebitda" : "");
+    const val = document.createElement("div");
+    val.className = "stats-kpi-value";
+    val.textContent = k.value;
+    const lbl = document.createElement("div");
+    lbl.className = "stats-kpi-label";
+    lbl.textContent = k.label;
+    card.appendChild(val);
+    card.appendChild(lbl);
+    kpiGrid.appendChild(card);
+  });
+  bodyEl.appendChild(kpiGrid);
+
+  bodyEl.appendChild(buildHeatmapSection(initiatives, win));
+  bodyEl.appendChild(buildTopRoiSection(initiatives, win));
+
+  const sectionTitle = document.createElement("div");
+  sectionTitle.className = "stats-section-title";
+  sectionTitle.textContent = "Initiatives side by side";
+  bodyEl.appendChild(sectionTitle);
+
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "stats-table-wrap";
+  const table = document.createElement("table");
+  table.className = "stats-table";
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Initiative", "Tasks", "Blocked", "Overdue", "At Risk", "EBITDA Realized / Potential", "% Realized"].forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  perInit.forEach(({ init, stats }) => {
+    const tr = document.createElement("tr");
+
+    const nameTd = document.createElement("td");
+    nameTd.className = "stats-td-name";
+    nameTd.textContent = init.title;
+    nameTd.title = "Open this initiative";
+    nameTd.addEventListener("click", () => {
+      store.currentId = init.id;
+      saveStore();
+      setStatsViewActive(false);
+      renderAll();
+    });
+    tr.appendChild(nameTd);
+
+    const pointsTd = document.createElement("td");
+    pointsTd.textContent = stats.done + " / " + stats.total;
+    tr.appendChild(pointsTd);
+
+    const blockedTd = document.createElement("td");
+    blockedTd.textContent = String(stats.blocked);
+    tr.appendChild(blockedTd);
+
+    const overdueTd = document.createElement("td");
+    overdueTd.textContent = String(stats.overdue);
+    tr.appendChild(overdueTd);
+
+    const atRiskTd = document.createElement("td");
+    atRiskTd.textContent = String(stats.atRisk);
+    tr.appendChild(atRiskTd);
+
+    const ebitdaTd = document.createElement("td");
+    const barWrap = document.createElement("div");
+    barWrap.className = "stats-bar-cell";
+    const track = document.createElement("div");
+    track.className = "stats-bar-track";
+    const fill = document.createElement("div");
+    fill.className = "stats-bar-fill";
+    const barPct = stats.ebitdaPotential > 0 ? Math.max(0, Math.min(100, (stats.ebitdaRealized / stats.ebitdaPotential) * 100)) : 0;
+    fill.style.width = barPct + "%";
+    track.appendChild(fill);
+    const barLabel = document.createElement("span");
+    barLabel.className = "stats-bar-label";
+    barLabel.textContent = stats.ebitdaEstimatedCount > 0
+      ? formatEbitda(stats.ebitdaRealized) + " / " + formatEbitda(stats.ebitdaPotential)
+      : "not estimated";
+    barWrap.appendChild(track);
+    barWrap.appendChild(barLabel);
+    ebitdaTd.appendChild(barWrap);
+    tr.appendChild(ebitdaTd);
+
+    const pctTd = document.createElement("td");
+    pctTd.textContent = stats.ebitdaPct === null ? "—" : Math.round(stats.ebitdaPct) + "%";
+    tr.appendChild(pctTd);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  tableWrap.appendChild(table);
+  bodyEl.appendChild(tableWrap);
+}
+
+function setStatsViewActive(active) {
+  if (active && ganttViewActive) setGanttViewActive(false);
+  statsViewActive = active;
+  const boardEl = document.getElementById("board");
+  const statsView = document.getElementById("statsView");
+  const timelineWrap = document.getElementById("timelineWrap");
+  const parkingLot = document.getElementById("parkingLot");
+  const notesPanel = document.querySelector(".notes-panel");
+  const toggleBtn = document.getElementById("statsToggleBtn");
+  const metaBar = document.querySelector(".meta-bar");
+  const layoutEl = document.querySelector(".layout");
+  const titleDropdownBtn = document.getElementById("titleDropdownBtn");
+  const subtitleField = document.getElementById("subtitleField");
+
+  if (!active && typeof gtooltipEl !== "undefined" && gtooltipEl) {
+    gtooltipEl.classList.remove("show", "gt-dim");
+    gtooltipOwner = null;
+  }
+
+  if (boardEl) boardEl.style.display = active ? "none" : "";
+  if (statsView) statsView.style.display = active ? "" : "none";
+  if (parkingLot) parkingLot.style.display = active ? "none" : "";
+  if (notesPanel) notesPanel.style.display = active ? "none" : "";
+  if (layoutEl) layoutEl.classList.toggle("gantt-mode", active);
+
+  // Reuses the same "gantt-dimmed" treatment as the Gantt view for the header/
+  // timeline/filter controls that don't apply while browsing cross-initiative
+  // stats — same visual language, no need for a parallel "stats-dimmed" class.
+  if (timelineWrap) timelineWrap.classList.toggle("gantt-dimmed", active);
+  if (titleDropdownBtn) titleDropdownBtn.classList.toggle("gantt-dimmed", active);
+  if (subtitleField) {
+    subtitleField.classList.toggle("gantt-dimmed", active);
+    subtitleField.setAttribute("contenteditable", active ? "false" : "true");
+  }
+  if (metaBar) {
+    Array.from(metaBar.children).forEach(child => {
+      if (child.classList.contains("prio-filter-topbar")) return;
+      child.classList.toggle("gantt-dimmed", active);
+    });
+  }
+  const filterBar = document.querySelector(".prio-filter-topbar");
+  if (filterBar) {
+    Array.from(filterBar.children).forEach(child => {
+      if (child.id === "ganttToggleBtn" || child.id === "statsToggleBtn" || child.classList.contains("filter-gap")) return;
+      child.classList.toggle("gantt-dimmed", active);
+    });
+  }
+  if (toggleBtn) toggleBtn.classList.toggle("active", active);
+
+  if (active) renderStatsView();
+}
+
+document.getElementById("statsToggleBtn").addEventListener("click", () => {
+  setStatsViewActive(!statsViewActive);
+});
+document.getElementById("statsCloseBtn").addEventListener("click", () => {
+  setStatsViewActive(false);
+});
+const statsPeriodDropdownPopover = createPopover(
+  document.getElementById("statsPeriodBtn"),
+  document.getElementById("statsPeriodPanel")
+);
+document.querySelectorAll("#statsPeriodPanel .filter-dropdown-option").forEach(opt => {
+  opt.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelectorAll("#statsPeriodPanel .filter-dropdown-option").forEach(o => o.classList.remove("active"));
+    opt.classList.add("active");
+    statsPeriod = opt.dataset.period;
+    const btn = document.getElementById("statsPeriodBtn");
+    btn.textContent = opt.textContent;
+    const caret = document.createElement("span");
+    caret.className = "filter-caret";
+    caret.textContent = "▾";
+    btn.appendChild(caret);
+    statsPeriodDropdownPopover.close();
+    document.getElementById("statsCustomRangeWrap").style.display = statsPeriod === "custom" ? "inline-flex" : "none";
+    if (statsViewActive) renderStatsView();
+  });
+});
+
+document.getElementById("statsCustomFrom").addEventListener("change", (e) => {
+  statsCustomFrom = e.target.value;
+  if (statsViewActive) renderStatsView();
+});
+document.getElementById("statsCustomTo").addEventListener("change", (e) => {
+  statsCustomTo = e.target.value;
+  if (statsViewActive) renderStatsView();
+});
+
+const statsInitiativeDropdownPopover = createPopover(
+  document.getElementById("statsInitiativeBtn"),
+  document.getElementById("statsInitiativePanel")
+);
 
 (function setupGanttDragPan() {
   const body = document.getElementById("ganttBody");
